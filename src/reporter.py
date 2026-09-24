@@ -1,13 +1,13 @@
 from datetime import datetime
 from pathlib import Path
 
-
 REPORT_DIR = Path("data/reports")
 
 
 def generate_report(
     signature,
     severity,
+    priority,
     source_ip,
     source_type,
     destination_ip,
@@ -16,6 +16,7 @@ def generate_report(
     interface,
     threat_intelligence,
     risk_level,
+    risk_reasons=None,
     mitre_mapping=None
 ):
     """
@@ -23,10 +24,11 @@ def generate_report(
 
     Includes:
     - Suricata detection
+    - Alert priority
     - Network indicators
     - AbuseIPDB intelligence
     - VirusTotal intelligence
-    - Risk assessment
+    - Risk assessment and reasons
     - MITRE ATT&CK mapping
     - Analyst notes
     """
@@ -50,49 +52,51 @@ def generate_report(
 
     report_path = REPORT_DIR / filename
 
-    # ==========================================================
-    # INCIDENT SUMMARY
-    # ==========================================================
+    if risk_reasons is None:
+        risk_reasons = []
 
     report = []
 
+    # =========================================================
+    # HEADER
+    # =========================================================
+
     report.append("# SOC Incident Report\n")
 
-    report.append("## Incident Summary\n")
+    # =========================================================
+    # INCIDENT SUMMARY
+    # =========================================================
 
+    report.append("## Incident Summary\n")
     report.append("| Field | Value |")
     report.append("|---|---|")
     report.append(f"| Detection Time | {timestamp} |")
     report.append(f"| Alert Signature | {signature} |")
     report.append(f"| Suricata Severity | {severity} |")
+    report.append(f"| Alert Priority | **{priority}** |")
     report.append(f"| Risk Level | **{risk_level}** |")
     report.append(f"| Protocol | {protocol} |")
     report.append(f"| Interface | {interface} |")
 
     report.append("\n---\n")
 
-    # ==========================================================
+    # =========================================================
     # NETWORK INDICATORS
-    # ==========================================================
+    # =========================================================
 
     report.append("## Network Indicators\n")
-
     report.append("| Indicator | Value | Type |")
     report.append("|---|---|---|")
-
-    report.append(
-        f"| Source IP | `{source_ip}` | {source_type} |"
-    )
-
+    report.append(f"| Source IP | `{source_ip}` | {source_type} |")
     report.append(
         f"| Destination IP | `{destination_ip}` | {destination_type} |"
     )
 
     report.append("\n---\n")
 
-    # ==========================================================
+    # =========================================================
     # THREAT INTELLIGENCE
-    # ==========================================================
+    # =========================================================
 
     report.append("## Threat Intelligence\n")
 
@@ -104,45 +108,36 @@ def generate_report(
         for key, value in threat_intelligence.items():
 
             if key.startswith("abuseipdb_"):
-
                 provider = "AbuseIPDB"
                 clean_key = key.replace("abuseipdb_", "", 1)
 
             elif key.startswith("virustotal_"):
-
                 provider = "VirusTotal"
                 clean_key = key.replace("virustotal_", "", 1)
 
             else:
-
                 provider = "Other"
                 clean_key = key
 
             display_key = clean_key.replace("_", " ").title()
 
             report.append(
-                f"| {provider} | "
-                f"{display_key} | "
-                f"{value} |"
+                f"| {provider} | {display_key} | {value} |"
             )
 
     else:
-
         report.append(
             "No public IP threat-intelligence data was available."
         )
 
     report.append("\n---\n")
 
-    # ==========================================================
+    # =========================================================
     # RISK ASSESSMENT
-    # ==========================================================
+    # =========================================================
 
     report.append("## Risk Assessment\n")
-
-    report.append(
-        f"**Risk Level:** `{risk_level}`\n"
-    )
+    report.append(f"**Risk Level:** `{risk_level}`\n")
 
     report.append(
         "The risk level was calculated using Suricata alert severity, "
@@ -150,14 +145,27 @@ def generate_report(
     )
 
     report.append(
-        "These signals are combined by the project's SOC risk engine."
+        "These signals are combined by the project's SOC risk engine.\n"
     )
+
+    report.append("### Risk Reasons\n")
+
+    if risk_reasons:
+
+        for reason in risk_reasons:
+            report.append(f"- {reason}")
+
+    else:
+
+        report.append(
+            "- No specific risk indicators were recorded."
+        )
 
     report.append("\n---\n")
 
-    # ==========================================================
-    # MITRE ATT&CK MAPPING
-    # ==========================================================
+    # =========================================================
+    # MITRE ATT&CK
+    # =========================================================
 
     report.append("## MITRE ATT&CK Mapping\n")
 
@@ -198,9 +206,9 @@ def generate_report(
 
     report.append("\n---\n")
 
-    # ==========================================================
+    # =========================================================
     # ANALYST NOTES
-    # ==========================================================
+    # =========================================================
 
     report.append("## Analyst Notes\n")
 
@@ -233,15 +241,14 @@ def generate_report(
     )
 
     report.append(
-        "- Escalate according to the organization's "
-        "incident-response procedure."
+        "- Escalate according to the organization's incident-response procedure."
     )
 
     report.append("\n---\n")
 
-    # ==========================================================
+    # =========================================================
     # DETECTION SOURCE
-    # ==========================================================
+    # =========================================================
 
     report.append("## Detection Source\n")
 
@@ -256,9 +263,9 @@ def generate_report(
 
     report.append("\n---\n")
 
-    # ==========================================================
+    # =========================================================
     # INVESTIGATION WORKFLOW
-    # ==========================================================
+    # =========================================================
 
     report.append("## Investigation Workflow\n")
 
@@ -278,14 +285,15 @@ def generate_report(
 
     report.append("\n---\n")
 
-    # ==========================================================
+    # =========================================================
     # AUTOMATION STATUS
-    # ==========================================================
+    # =========================================================
 
     report.append("## Automation Status\n")
 
     report.append("| Component | Status |")
     report.append("|---|---|")
+
     report.append("| Suricata IDS | Active |")
     report.append("| EVE JSON Parsing | Active |")
     report.append("| Stateful Processing | Active |")
@@ -295,9 +303,9 @@ def generate_report(
     report.append("| MITRE ATT&CK Mapping | Active |")
     report.append("| Incident Reporting | Active |")
 
-    # ==========================================================
+    # =========================================================
     # WRITE REPORT
-    # ==========================================================
+    # =========================================================
 
     with open(report_path, "w") as file:
         file.write("\n".join(report))
@@ -305,61 +313,39 @@ def generate_report(
     return report_path
 
 
-# ==============================================================
-# STANDALONE TEST
-# ==============================================================
-
 if __name__ == "__main__":
 
-    test_threat_intelligence = {
-
-        "abuseipdb_ip": "203.0.113.10",
-        "abuseipdb_status": "ENRICHED",
-        "abuseipdb_abuse_score": 85,
-        "abuseipdb_country": "US",
-        "abuseipdb_total_reports": 120,
-
-        "virustotal_ip": "203.0.113.10",
-        "virustotal_status": "ENRICHED",
-        "virustotal_reputation": -3,
-        "virustotal_malicious": 5,
-        "virustotal_suspicious": 2,
-        "virustotal_harmless": 40,
-        "virustotal_undetected": 20,
-        "virustotal_country": "US",
-        "virustotal_asn": 64500,
-        "virustotal_as_owner": "Example Network"
-    }
-
-    test_mitre_mapping = {
-
-        "tactic": "Discovery",
-        "technique_id": "T1016",
-        "technique_name": "System Network Configuration Discovery",
-        "confidence": "Low",
-        "rationale": (
-            "ICMP activity can provide basic network reachability "
-            "information, but ICMP alone does not prove ATT&CK "
-            "technique execution."
-        )
-    }
-
-    report = generate_report(
-        signature="SOC LAB - ICMP Ping Detected",
+    test_report = generate_report(
+        signature="SOC LAB - Test Detection",
         severity=2,
-        source_ip="203.0.113.10",
-        source_type="Public IP",
+        priority="HIGH",
+        source_ip="203.0.113.50",
+        source_type="Public",
         destination_ip="10.0.15.61",
-        destination_type="Private IP",
-        protocol="ICMP",
+        destination_type="Private",
+        protocol="TCP",
         interface="ens5",
-        threat_intelligence=test_threat_intelligence,
-        risk_level="CRITICAL",
-        mitre_mapping=test_mitre_mapping
+        threat_intelligence={
+            "abuseipdb_abuse_score": 75,
+            "virustotal_malicious": 4
+        },
+        risk_level="HIGH",
+        risk_reasons=[
+            "AbuseIPDB abuse confidence score is elevated",
+            "VirusTotal has multiple malicious engine detections",
+            "Suricata severity indicates a high-priority alert"
+        ],
+        mitre_mapping={
+            "tactic": "Discovery",
+            "technique_id": "T1046",
+            "technique_name": "Network Service Scanning",
+            "confidence": "Medium",
+            "rationale": "Test mapping for report generation."
+        }
     )
 
     print("\n==========================================")
-    print("       SOC INCIDENT REPORT TEST")
+    print("       INCIDENT REPORT TEST")
     print("==========================================")
-    print(f"Report generated: {report}")
+    print(f"Report created: {test_report}")
     print("==========================================\n")

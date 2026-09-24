@@ -1,12 +1,4 @@
-def calculate_risk(severity, abuse_score, vt_malicious=0):
-    """
-    Calculate SOC risk using:
-
-    1. Suricata severity
-    2. AbuseIPDB abuse confidence score
-    3. VirusTotal malicious engine count
-    """
-
+def normalize_values(severity, abuse_score, vt_malicious):
     try:
         severity = int(severity)
     except (ValueError, TypeError):
@@ -22,13 +14,21 @@ def calculate_risk(severity, abuse_score, vt_malicious=0):
     except (ValueError, TypeError):
         vt_malicious = 0
 
-    # Critical
+    return severity, abuse_score, vt_malicious
+
+
+def calculate_risk(severity, abuse_score, vt_malicious=0):
+    severity, abuse_score, vt_malicious = normalize_values(
+        severity,
+        abuse_score,
+        vt_malicious
+    )
+
     if (
         abuse_score >= 80 and severity <= 2
     ) or vt_malicious >= 5:
         return "CRITICAL"
 
-    # High
     if (
         abuse_score >= 50
         or severity == 1
@@ -36,7 +36,6 @@ def calculate_risk(severity, abuse_score, vt_malicious=0):
     ):
         return "HIGH"
 
-    # Medium
     if (
         abuse_score >= 20
         or severity == 2
@@ -44,8 +43,64 @@ def calculate_risk(severity, abuse_score, vt_malicious=0):
     ):
         return "MEDIUM"
 
-    # Low
     return "LOW"
+
+
+def explain_risk(severity, abuse_score, vt_malicious=0):
+    severity, abuse_score, vt_malicious = normalize_values(
+        severity,
+        abuse_score,
+        vt_malicious
+    )
+
+    reasons = []
+
+    if abuse_score >= 80 and severity <= 2:
+        reasons.append(
+            "High AbuseIPDB score combined with high-severity Suricata alert"
+        )
+
+    if vt_malicious >= 5:
+        reasons.append(
+            "VirusTotal reports multiple malicious detections"
+        )
+
+    if abuse_score >= 50:
+        reasons.append(
+            "AbuseIPDB abuse confidence score is elevated"
+        )
+
+    if severity == 1:
+        reasons.append(
+            "Suricata severity is critical"
+        )
+
+    if vt_malicious >= 2:
+        reasons.append(
+            "VirusTotal has multiple malicious engine detections"
+        )
+
+    if abuse_score >= 20:
+        reasons.append(
+            "AbuseIPDB reports measurable abuse confidence"
+        )
+
+    if severity == 2:
+        reasons.append(
+            "Suricata severity indicates a high-priority alert"
+        )
+
+    if vt_malicious >= 1:
+        reasons.append(
+            "VirusTotal has at least one malicious engine detection"
+        )
+
+    if not reasons:
+        reasons.append(
+            "No strong threat-intelligence or severity indicators were observed"
+        )
+
+    return reasons
 
 
 if __name__ == "__main__":
@@ -68,6 +123,12 @@ if __name__ == "__main__":
             vt_malicious
         )
 
+        reasons = explain_risk(
+            severity,
+            abuse_score,
+            vt_malicious
+        )
+
         print(
             f"Severity: {severity} | "
             f"Abuse Score: {abuse_score} | "
@@ -75,4 +136,11 @@ if __name__ == "__main__":
             f"Risk: {risk}"
         )
 
-    print("\n===========================\n")
+        print("Reasons:")
+
+        for reason in reasons:
+            print(f"  - {reason}")
+
+        print()
+
+    print("===========================\n")

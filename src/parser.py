@@ -3,7 +3,7 @@ import ipaddress
 
 from enrichment import check_ip
 from virustotal import check_ip as vt_check_ip
-from risk_engine import calculate_risk
+from risk_engine import calculate_risk, explain_risk
 from reporter import generate_report
 from mitre_mapper import get_mitre_mapping
 
@@ -445,6 +445,17 @@ def read_alerts():
             f"Risk Level        : {risk}"
         )
 
+        risk_reasons = explain_risk(
+            severity,
+            abuse_score,
+            vt_malicious
+        )
+
+        print("Risk Reasons      :")
+
+        for reason in risk_reasons:
+            print(f"  - {reason}")
+
         # ------------------------------------------------------
         # MITRE ATT&CK
         # ------------------------------------------------------
@@ -533,9 +544,13 @@ def read_alerts():
 
             interface=interface,
 
+            priority=priority,
+
             threat_intelligence=threat_intelligence,
 
             risk_level=risk,
+
+            risk_reasons=risk_reasons,
 
             mitre_mapping=mitre_mapping
         )
