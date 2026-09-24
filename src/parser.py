@@ -52,6 +52,22 @@ def get_virustotal(ip):
     return result
 
 
+def get_alert_priority(severity):
+    try:
+        severity = int(severity)
+    except (ValueError, TypeError):
+        return "LOW"
+
+    if severity == 1:
+        return "CRITICAL"
+    elif severity == 2:
+        return "HIGH"
+    elif severity == 3:
+        return "MEDIUM"
+    else:
+        return "LOW"
+
+
 def print_result(result):
 
     for key, value in result.items():
@@ -168,6 +184,8 @@ def read_alerts():
             3
         )
 
+        priority = get_alert_priority(severity)
+
         source_ip = event.get(
             "src_ip",
             "--"
@@ -210,6 +228,10 @@ def read_alerts():
 
         print(
             f"Severity        : {severity}"
+        )
+
+        print(
+            f"Alert Priority  : {priority}"
         )
 
         print(
