@@ -15,14 +15,21 @@ mappings:
     technique_id: "T1016"
     technique_name: "System Network Configuration Discovery"
     confidence: "Low"
-    rationale: "External IP lookup activity may indicate discovery of the host's public network configuration."
+    rationale: "External IP lookup activity may indicate discovery of the host's public network configuration, but the alert alone does not confirm ATT&CK technique execution."
 
   "ET HUNTING curl User-Agent to Dotted Quad":
     tactic: "Command and Control"
     technique_id: "T1071.001"
-    technique_name: "Web Protocols: Web Protocols"
+    technique_name: "Web Protocols"
     confidence: "Low"
-    rationale: "HTTP-based activity can be associated with web protocols, but this alert alone does not establish command-and-control behavior."
+    rationale: "HTTP-based communication can use web protocols, but this alert alone does not establish command-and-control behavior."
+
+  "ET SCAN Potential SSH Scan":
+    tactic: "Discovery"
+    technique_id: "T1046"
+    technique_name: "Network Service Scanning"
+    confidence: "Medium"
+    rationale: "SSH scanning is consistent with network service discovery and can indicate enumeration of accessible services."
 
   "ET DROP Spamhaus DROP Listed Traffic Inbound":
     tactic: "Command and Control"
